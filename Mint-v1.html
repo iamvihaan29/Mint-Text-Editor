@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mint Text Editor</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            transition: background-color 0.3s ease;
+        }
+        body.dark {
+            background-color: #1a202c;
+        }
+        .bg-white {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .dark .bg-white {
+            background-color: #2d3748;
+        }
+        /* Custom scrollbar for a cleaner look */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background-color: #a0aec0;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background-color: #e2e8f0;
+        }
+        .dark textarea::-webkit-scrollbar-thumb {
+            background-color: #718096;
+        }
+        .dark textarea::-webkit-scrollbar-track {
+            background-color: #4a5568;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div class="bg-white rounded-2xl shadow-xl p-8 max-w-4xl w-full">
+        <div class="flex justify-between items-center mb-6">
+            <!-- Two titles for light and dark mode -->
+            <h1 id="lightModeTitle" class="text-3xl font-bold text-gray-900">Mint</h1>
+            <h1 id="darkModeTitle" class="text-3xl font-bold text-gray-100 hidden">Mint</h1>
+
+            <button id="darkModeToggleBtn" class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 py-2 px-4 rounded-full shadow-md transition duration-200">
+                <span class="dark-mode-icon">🌙</span>
+            </button>
+        </div>
+
+        <!-- Text Area -->
+        <textarea id="editor" class="w-full h-[500px] p-4 text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 resize-y dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600" placeholder="Start typing here..."></textarea>
+
+        <!-- Stats -->
+        <div class="mt-4 flex justify-between text-sm text-gray-500 dark:text-gray-400">
+            <span id="wordCount">0 words</span>
+            <span id="charCount">0 characters</span>
+        </div>
+
+        <!-- Buttons Container -->
+        <div class="mt-6 flex flex-wrap justify-center gap-4">
+            <button id="loadBtn" class="bg-blue-600 text-white font-medium py-3 px-6 rounded-full shadow-md hover:bg-blue-700 transition duration-200 transform hover:scale-105 active:scale-95">
+                Load File
+            </button>
+            <button id="saveBtn" class="bg-green-600 text-white font-medium py-3 px-6 rounded-full shadow-md hover:bg-green-700 transition duration-200 transform hover:scale-105 active:scale-95">
+                Save File
+            </button>
+            <button id="clearBtn" class="bg-gray-400 text-white font-medium py-3 px-6 rounded-full shadow-md hover:bg-gray-500 transition duration-200 transform hover:scale-105 active:scale-95">
+                Clear All
+            </button>
+        </div>
+
+        <!-- Hidden file input for loading files -->
+        <input type="file" id="fileInput" class="hidden" accept=".txt">
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const editor = document.getElementById('editor');
+            const saveBtn = document.getElementById('saveBtn');
+            const loadBtn = document.getElementById('loadBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const fileInput = document.getElementById('fileInput');
+            const wordCountSpan = document.getElementById('wordCount');
+            const charCountSpan = document.getElementById('charCount');
+            const darkModeToggleBtn = document.getElementById('darkModeToggleBtn');
+            const body = document.body;
+            const darkModeIcon = darkModeToggleBtn.querySelector('.dark-mode-icon');
+            const lightModeTitle = document.getElementById('lightModeTitle');
+            const darkModeTitle = document.getElementById('darkModeTitle');
+
+            // --- Dark Mode Functionality ---
+            const currentTheme = localStorage.getItem('theme');
+            if (currentTheme === 'dark') {
+                body.classList.add('dark');
+                darkModeIcon.textContent = '☀️';
+                lightModeTitle.classList.add('hidden');
+                darkModeTitle.classList.remove('hidden');
+            }
+
+            darkModeToggleBtn.addEventListener('click', () => {
+                body.classList.toggle('dark');
+                if (body.classList.contains('dark')) {
+                    localStorage.setItem('theme', 'dark');
+                    darkModeIcon.textContent = '☀️';
+                    lightModeTitle.classList.add('hidden');
+                    darkModeTitle.classList.remove('hidden');
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    darkModeIcon.textContent = '🌙';
+                    lightModeTitle.classList.remove('hidden');
+                    darkModeTitle.classList.add('hidden');
+                }
+            });
+
+            // --- Auto-save and Word/Character Count Functionality ---
+            // Load saved content on page load
+            const savedContent = localStorage.getItem('editorContent');
+            if (savedContent) {
+                editor.value = savedContent;
+            }
+            
+            const updateCounts = () => {
+                const text = editor.value;
+                const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+                wordCountSpan.textContent = `${words.length} words`;
+                charCountSpan.textContent = `${text.length} characters`;
+            };
+
+            // Debounce the save operation to avoid excessive localStorage writes
+            let saveTimeout;
+            editor.addEventListener('input', () => {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    localStorage.setItem('editorContent', editor.value);
+                }, 500); // Save every 500ms
+                updateCounts();
+            });
+
+            // Initial count update
+            updateCounts();
+
+            // --- File Operations (unchanged) ---
+            saveBtn.addEventListener('click', () => {
+                const textContent = editor.value;
+                const blob = new Blob([textContent], { type: 'text/plain' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'document.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+
+            loadBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        editor.value = e.target.result;
+                        localStorage.setItem('editorContent', editor.value); // Save loaded content
+                        updateCounts();
+                    };
+                    reader.onerror = () => {
+                        console.error("Failed to read file!");
+                    };
+                    reader.readAsText(file);
+                }
+            });
+
+            clearBtn.addEventListener('click', () => {
+                editor.value = '';
+                localStorage.removeItem('editorContent'); // Clear saved content
+                updateCounts();
+            });
+        });
+    </script>
+</body>
+</html>
+
