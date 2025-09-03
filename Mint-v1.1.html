@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mint Text Editor</title>
+    <!-- Use the Inter font from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .mint-text {
+            color: #55E6C1;
+        }
+        .mint-bg {
+            background-color: #55E6C1;
+        }
+        /* Custom styles for the toggle button SVG */
+        .icon-sun { fill: #FFD700; }
+        .icon-moon { fill: #FFFFFF; }
+    </style>
+</head>
+<body class="bg-slate-900 text-gray-100 min-h-screen p-4 flex flex-col items-center">
+
+    <div id="mainContainer" class="w-full max-w-4xl p-6 bg-slate-800 rounded-2xl shadow-xl flex flex-col space-y-4 transition-colors duration-300">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-3xl font-bold text-mint-text">Mint Text Editor</h1>
+            <!-- Dark/Light Mode Toggle Button -->
+            <button id="themeToggleBtn" class="p-2 rounded-full bg-slate-700 hover:bg-slate-600 transition-colors duration-300 border border-white">
+                <svg id="sunIcon" class="w-6 h-6 icon-sun hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg id="moonIcon" class="w-6 h-6 icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <p class="text-center text-gray-400" id="introText">Type your thoughts and save them with a custom filename and type.</p>
+
+        <!-- New Load section with a pasteable text area -->
+        <div class="p-4 bg-slate-900 rounded-xl space-y-2 border border-slate-700 transition-colors duration-300">
+            <h3 class="text-lg font-medium text-gray-100" id="loadTitle">Load from Clipboard</h3>
+            <textarea id="pasteArea" class="w-full h-24 p-2 rounded-lg bg-slate-800 text-gray-200 border border-slate-700 focus:outline-none focus:ring-1 focus:ring-mint-text resize-none text-sm md:text-base transition-colors duration-300" placeholder="Paste text here to load it into the editor..."></textarea>
+            <div class="flex justify-end space-x-2">
+                <button id="clearPasteBtn" class="text-sm text-gray-400 hover:text-white transition-colors border border-white px-3 py-1 rounded-lg">Clear</button>
+                <button id="loadFromPasteBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors duration-300 border border-white">Load</button>
+            </div>
+        </div>
+
+        <!-- Main text editor area -->
+        <textarea id="editor" class="w-full h-80 p-4 rounded-xl bg-slate-900 text-gray-200 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-mint-text transition-all resize-none shadow-inner text-sm md:text-base" placeholder="Start typing here..."></textarea>
+
+        <!-- Live Counters -->
+        <div class="flex justify-between text-sm text-gray-400 mt-2">
+            <span id="wordCount">0 Words</span>
+            <span id="charCount">0 Characters</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-end space-x-4 mt-4">
+            <button id="saveAsBtn" class="bg-mint-text hover:bg-opacity-80 text-gray-900 font-medium py-3 px-6 rounded-xl shadow-lg transition-colors duration-300 border border-white">
+                Save As...
+            </button>
+        </div>
+    </div>
+
+    <!-- The Save As modal -->
+    <div id="saveAsModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 transition-opacity duration-300 opacity-0 pointer-events-none">
+        <div id="modalContainer" class="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-300 border border-white">
+            <h2 class="text-xl md:text-2xl font-semibold mb-6 text-center text-mint-text">Save File As...</h2>
+
+            <div class="space-y-4">
+                <!-- File name input -->
+                <div>
+                    <label for="fileNameInput" class="block text-gray-300 text-sm font-medium mb-1" id="fileNameLabel">File Name</label>
+                    <input type="text" id="fileNameInput" class="w-full px-4 py-2 rounded-lg bg-slate-900 text-gray-100 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-mint-text transition-colors duration-300" placeholder="MyDocument">
+                </div>
+
+                <!-- File type dropdown -->
+                <div>
+                    <label for="fileTypeSelect" class="block text-gray-300 text-sm font-medium mb-1" id="fileTypeLabel">File Type</label>
+                    <select id="fileTypeSelect" class="w-full px-4 py-2 rounded-lg bg-slate-900 text-gray-100 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-mint-text cursor-pointer transition-colors duration-300">
+                        <option value=".txt">Plain Text (.txt)</option>
+                        <option value=".html">HTML (.html)</option>
+                        <option value=".css">CSS (.css)</option>
+                        <option value=".js">JavaScript (.js)</option>
+                        <option value=".md">Markdown (.md)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Modal action buttons -->
+            <div class="flex justify-end space-x-4 mt-6">
+                <button id="cancelSaveBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-5 rounded-lg transition-colors duration-300 border border-white">
+                    Cancel
+                </button>
+                <button id="saveFileBtn" class="bg-mint-text hover:bg-opacity-80 text-gray-900 font-medium py-2 px-5 rounded-lg transition-colors duration-300 border border-white">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const body = document.body;
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const editor = document.getElementById('editor');
+            const mainContainer = document.getElementById('mainContainer');
+            const modalContainer = document.getElementById('modalContainer');
+            const introText = document.getElementById('introText');
+            const loadTitle = document.getElementById('loadTitle');
+            const pasteArea = document.getElementById('pasteArea');
+            const fileNameInput = document.getElementById('fileNameInput');
+            const fileTypeSelect = document.getElementById('fileTypeSelect');
+            const fileNameLabel = document.getElementById('fileNameLabel');
+            const fileTypeLabel = document.getElementById('fileTypeLabel');
+            const wordCountDisplay = document.getElementById('wordCount');
+            const charCountDisplay = document.getElementById('charCount');
+            const loadFromPasteBtn = document.getElementById('loadFromPasteBtn');
+            const clearPasteBtn = document.getElementById('clearPasteBtn');
+            const saveAsBtn = document.getElementById('saveAsBtn');
+            const saveAsModal = document.getElementById('saveAsModal');
+            const saveFileBtn = document.getElementById('saveFileBtn');
+            const cancelSaveBtn = document.getElementById('cancelSaveBtn');
+
+            let isDarkMode = true;
+            
+            const allButtons = [themeToggleBtn, clearPasteBtn, loadFromPasteBtn, saveAsBtn, cancelSaveBtn, saveFileBtn];
+            const borderElements = [mainContainer, modalContainer, pasteArea, editor, fileNameInput, fileTypeSelect];
+
+            const toggleTheme = () => {
+                isDarkMode = !isDarkMode;
+                if (isDarkMode) {
+                    // Switch to Dark Mode
+                    body.classList.remove('bg-f0f4f8');
+                    body.classList.add('bg-slate-900', 'text-gray-100');
+                    mainContainer.classList.remove('bg-white');
+                    mainContainer.classList.add('bg-slate-800');
+                    editor.classList.remove('bg-f8fafc', 'text-slate-900', 'border-slate-300');
+                    editor.classList.add('bg-slate-900', 'text-gray-200', 'border-slate-700');
+                    pasteArea.classList.remove('bg-gray-50', 'text-slate-900', 'border-gray-300');
+                    pasteArea.classList.add('bg-slate-800', 'text-gray-200', 'border-slate-700');
+                    modalContainer.classList.remove('bg-white');
+                    modalContainer.classList.add('bg-slate-800');
+                    fileNameInput.classList.remove('bg-f8fafc', 'text-slate-900', 'border-slate-300');
+                    fileNameInput.classList.add('bg-slate-900', 'text-gray-100', 'border-slate-700');
+                    fileTypeSelect.classList.remove('bg-f8fafc', 'text-slate-900', 'border-slate-300');
+                    fileTypeSelect.classList.add('bg-slate-900', 'text-gray-100', 'border-slate-700');
+                    introText.classList.remove('text-gray-600');
+                    introText.classList.add('text-gray-400');
+                    loadTitle.classList.remove('text-slate-900');
+                    loadTitle.classList.add('text-gray-100');
+                    fileNameLabel.classList.remove('text-gray-600');
+                    fileNameLabel.classList.add('text-gray-300');
+                    fileTypeLabel.classList.remove('text-gray-600');
+                    fileTypeLabel.classList.add('text-gray-300');
+                    wordCountDisplay.classList.remove('text-gray-600');
+                    wordCountDisplay.classList.add('text-gray-400');
+                    charCountDisplay.classList.remove('text-gray-600');
+                    charCountDisplay.classList.add('text-gray-400');
+                    sunIcon.classList.add('hidden');
+                    moonIcon.classList.remove('hidden');
+
+                    allButtons.forEach(btn => btn.classList.remove('border-gray-400'));
+                    allButtons.forEach(btn => btn.classList.add('border-white'));
+
+                } else {
+                    // Switch to Light Mode
+                    body.classList.remove('bg-slate-900', 'text-gray-100');
+                    body.classList.add('bg-f0f4f8');
+                    mainContainer.classList.remove('bg-slate-800');
+                    mainContainer.classList.add('bg-white');
+                    editor.classList.remove('bg-slate-900', 'text-gray-200', 'border-slate-700');
+                    editor.classList.add('bg-f8fafc', 'text-slate-900', 'border-slate-300');
+                    pasteArea.classList.remove('bg-slate-800', 'text-gray-200', 'border-slate-700');
+                    pasteArea.classList.add('bg-gray-50', 'text-slate-900', 'border-gray-300');
+                    modalContainer.classList.remove('bg-slate-800');
+                    modalContainer.classList.add('bg-white');
+                    fileNameInput.classList.remove('bg-slate-900', 'text-gray-100', 'border-slate-700');
+                    fileNameInput.classList.add('bg-f8fafc', 'text-slate-900', 'border-slate-300');
+                    fileTypeSelect.classList.remove('bg-slate-900', 'text-gray-100', 'border-slate-700');
+                    fileTypeSelect.classList.add('bg-f8fafc', 'text-slate-900', 'border-slate-300');
+                    introText.classList.remove('text-gray-400');
+                    introText.classList.add('text-gray-600');
+                    loadTitle.classList.remove('text-gray-100');
+                    loadTitle.classList.add('text-slate-900');
+                    fileNameLabel.classList.remove('text-gray-300');
+                    fileNameLabel.classList.add('text-gray-600');
+                    fileTypeLabel.classList.remove('text-gray-300');
+                    fileTypeLabel.classList.add('text-gray-600');
+                    wordCountDisplay.classList.remove('text-gray-400');
+                    wordCountDisplay.classList.add('text-gray-600');
+                    charCountDisplay.classList.remove('text-gray-400');
+                    charCountDisplay.classList.add('text-gray-600');
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+
+                    allButtons.forEach(btn => btn.classList.remove('border-white'));
+                    allButtons.forEach(btn => btn.classList.add('border-gray-400'));
+                }
+            };
+            themeToggleBtn.addEventListener('click', toggleTheme);
+            
+            // --- Word and Character Counter Logic ---
+            const updateCounts = () => {
+                const text = editor.value;
+                const charCount = text.length;
+                const words = text.split(/\s+/).filter(word => word.length > 0);
+                const wordCount = words.length;
+                wordCountDisplay.textContent = `${wordCount} Words`;
+                charCountDisplay.textContent = `${charCount} Characters`;
+            };
+            editor.addEventListener('input', updateCounts);
+            updateCounts(); // Initial call to set counts on load
+
+            // --- Save As Modal Logic ---
+            const openModal = () => {
+                saveAsModal.classList.remove('opacity-0', 'pointer-events-none');
+                modalContainer.classList.remove('scale-95');
+                modalContainer.classList.add('scale-100');
+            };
+
+            const closeModal = () => {
+                saveAsModal.classList.add('opacity-0', 'pointer-events-none');
+                modalContainer.classList.remove('scale-100');
+                modalContainer.classList.add('scale-95');
+            };
+
+            const saveFile = () => {
+                const fileName = fileNameInput.value.trim() || 'untitled';
+                const fileType = fileTypeSelect.value;
+                const fileContent = editor.value;
+                const finalFileName = `${fileName}${fileType}`;
+                const blob = new Blob([fileContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = finalFileName;
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                closeModal();
+            };
+
+            saveAsBtn.addEventListener('click', openModal);
+            saveFileBtn.addEventListener('click', saveFile);
+            cancelSaveBtn.addEventListener('click', closeModal);
+            saveAsModal.addEventListener('click', (e) => {
+                if (e.target === saveAsModal) {
+                    closeModal();
+                }
+            });
+
+            // --- Paste and Load Logic ---
+            loadFromPasteBtn.addEventListener('click', () => {
+                editor.value = pasteArea.value;
+                updateCounts();
+                pasteArea.value = ''; // Clear the paste area after loading
+            });
+
+            clearPasteBtn.addEventListener('click', () => {
+                pasteArea.value = '';
+            });
+        });
+    </script>
+</body>
+</html>
